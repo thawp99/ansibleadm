@@ -1,0 +1,16 @@
+---
+- hosts: master
+  tasks:
+     - name:  Install kubeadm 
+       yum:
+         pkg: kubeadm 
+         state: present
+         update_cache: true
+       notify: restart kubeadm
+
+  handlers:
+    - name: restart kubeadm
+      service:
+        name: kubelet 
+        state: restarted
+ 

@@ -1,0 +1,4 @@
+---
+- include: k8smaster.yml
+  tags:
+    - master

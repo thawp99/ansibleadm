@@ -1,0 +1,12 @@
+---
+- hosts: master
+  roles:
+    - apache
+
+- hosts: node1
+  roles:
+    - apach
+
+- hosts: node2
+  roles:
+    - apach

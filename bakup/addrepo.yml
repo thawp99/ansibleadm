@@ -1,0 +1,11 @@
+---
+- hosts: all
+  tasks:
+    - name: Deploy new kubernitet repository
+      copy:
+        src: /etc/ansible/kubernetes.repo
+        dest: /etc/yum.repos.d/kubernetes.repo
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes

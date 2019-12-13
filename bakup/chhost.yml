@@ -1,0 +1,11 @@
+---
+- hosts: master
+  tasks:
+     - name: Change Hostname 
+       shell:  hostnamectl set-hostname 'k8s-master'
+       become: yes
+       become_user: root
+     - name: Exec Bash 
+       shell: exec bash
+       become: yes
+       become_user: root

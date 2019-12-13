@@ -1,0 +1,5 @@
+---
+- name: restart kubeadm
+  service:
+    name: kubelet
+    state: restarted

@@ -1,0 +1,12 @@
+---
+- hosts: all
+  tasks:
+     - name: Diable SE Linux
+       selinux:
+         policy: targeted
+         state: permissive 
+     - name: Edit Configure SE 
+       shell: sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+       become: yes
+       become_user: root
+

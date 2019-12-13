@@ -1,0 +1,93 @@
+---
+- name: Change Hostname
+  shell:  hostnamectl set-hostname {{ NAME }}
+  become: yes
+  become_user: root
+#- name: Exec Bash
+#  shell: exec bash
+#  become: yes
+#  become_user: root
+- name: Diable SE Linux
+  selinux:
+     policy: targeted
+     state: permissive 
+- name: Edit Configure SE 
+  shell: sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+  become: yes
+  become_user: root
+
+- name: be sure firewalld is installed
+  dnf: name=firewalld state=installed
+  tags:
+    - install
+    - firewalld
+ 
+- name: be sure firewalld is disabled
+  systemd: name=firewalld enabled=no
+  tags:
+    - install
+    - atomic
+    - firewalld
+
+- name: be sure firewalld is stopped
+  systemd: name=firewalld state=stopped
+  ignore_errors: yes
+  tags:
+    - install
+    - atomic
+    - firewalld
+
+- name: Edit SystemCtl Br_netFilter 
+  shell: modprobe br_netfilter ; echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+  become: yes
+  become_user: root
+
+- name: Deploy new kubernitet repository
+  copy:
+    src: /etc/ansible/roles/master/files/kubernetes.repo
+    dest: /etc/yum.repos.d/kubernetes.repo
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+
+- name:  Install kubeadm
+  yum:
+    pkg: kubeadm
+    state: present
+    update_cache: true
+  notify: restart kubeadm
+
+- name: Enable Kublet
+  shell: systemctl enable kubelet
+  become: yes
+  become_user: root
+
+- name: Installs Docker Ce
+  yum:
+    pkg: docker-ce
+    state: present
+    update_cache: true
+  notify: restart docker
+
+- name: Reload daemon docker
+  shell: systemctl daemon-reload
+  become: yes
+  become_user: root
+
+- name: Start docker
+  shell: systemctl restart docker ; systemctl enable docker
+  become: yes
+  become_user: root
+
+#- name: KubeAdm Init 
+#  shell: kubeadm init
+#  become: yes
+#  become_user: root
+#  notify: kubeadm init
+
+#- name: Install kube(K8s) Networking 
+#  shell: export kubever=$(kubectl version | base64 | tr -d '\n') ; kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+#  become: yes
+#  become_user: root 

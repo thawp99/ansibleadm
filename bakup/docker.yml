@@ -1,0 +1,26 @@
+---
+- hosts: all
+  tasks:
+    - name: Installs Docker Ce
+      yum:
+        pkg: docker-ce
+        state: present
+        update_cache: true
+      notify: restart docker
+
+    - name: Reload daemon docker
+      shell: systemctl daemon-reload
+      become: yes
+      become_user: root
+
+    - name: Start docker
+      shell: systemctl restart docker
+      become: yes
+      become_user: root
+        
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+        

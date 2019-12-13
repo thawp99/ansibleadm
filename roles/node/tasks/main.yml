@@ -1,0 +1,4 @@
+---
+- include: k8snode.yml
+  tags:
+    - node
