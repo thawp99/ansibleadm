@@ -1,0 +1,1 @@
+kubeadm join 172.16.0.4:6443 --token zlywdq.gd1qur81aq38icls     --discovery-token-ca-cert-hash sha256:1fa7be4b60d89f9e3421baa9b22e99e83d9229fb4bce4d1f9edf605bde895191 

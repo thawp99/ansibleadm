@@ -1,0 +1,15 @@
+- name: KubeAdm  Reset ..
+  shell: echo "y"|kubeadm reset > /tmp/kubereset.log 2>&1
+  become: yes
+  become_user: root
+
+- name: kubeAdm remove configuretion ..
+  shell: rm -rf $HOME/.kube/config
+  become: yes
+  become_user: root
+
+- name: remove kubeadm kubelet package 
+  shell:  rpm -qa |grep kube|xargs yum remove -y
+
+- name: remove docker-ce docker-cli
+  shell:  rpm -qa |grep docker-ce|xargs yum remove -y

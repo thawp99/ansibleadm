@@ -1,6 +1,6 @@
 ---
 - name: Change Hostname
-  shell:  hostnamectl set-hostname {{ NAME }}
+  shell: hostnamectl set-hostname {{ NAME }}
   become: yes
   become_user: root
 
@@ -55,15 +55,24 @@
     backup: yes
 
 
-- name:  Install kubeadm
+- name:  "Install kubelet,kubectl version {{kubever}}"
   yum:
-    pkg: kubeadm
+    name: 
+      - kubelet-{{kubever}}.x86_64
+      - kubectl-{{kubever}}.x86_64
+    state: present
+    update_cache: true
+
+- name:  "Install kubeadm version {{kubever}}"
+  yum:
+    name:
+      - kubeadm-{{kubever}}.x86_64
     state: present
     update_cache: true
   notify: restart kubeadm
 
-- name: Enable Kublet
-  shell: systemctl enable kubelet
+- name: "Enable Kublet version {{kubever}}"
+  shell: systemctl disable kubelet;systemctl enable kubelet
   become: yes
   become_user: root
 
@@ -72,7 +81,7 @@
     pkg: docker-ce
     state: present
     update_cache: true
-  notify: restart docker
+ # notify: restart docker
 
 - name: Reload daemon docker
   shell: systemctl daemon-reload
@@ -84,10 +93,52 @@
   become: yes
   become_user: root
 
+- name: Recheck Kubeadm Command 
+  shell: kubeadm version
+  register: kubeadm_vers
+  changed_when: False
+
+- debug: var=kubeadm_vers.stdout.find('kubeadm version')
+  run_once: true
+
 - name: KubeAdm Init 
-  shell: kubeadm init
+  shell: kubeadm init > /tmp/kubeinit.log 2>&1
+  when: "kubeadm_vers.stdout.find('kubeadm version') != -1"
   become: yes
   become_user: root
+
+#- name: Register Token
+#  shell: cat /tmp/kubeinit.log |grep -A1 "kubeadm join" |sed ':a;N;$!ba;s/\n/ /g'
+#  register: token_contents
+
+- name: Generate token
+  shell: kubeadm token create $(echo $(kubeadm token generate)) --print-join-command  > /etc/ansible/roles/master/files/token_master.tk
+  register: token_contents
+
+
+- name: Deploy token key 
+  copy:
+    src: /etc/ansible/roles/master/files/token_master.tk
+    dest: /etc/ansible/roles/node/files/token_master.tk
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+
+- name: Export Token
+  shell: export TOKEN="{{token_contents.stdout}}"
+  become: yes
+  become_user: root
+
+- debug: var=token_contents.stdout
+  run_once: true
+
+- set_fact: 
+    token={{ token_contents.stdout }}    
+
+- debug: var=token
+  run_once: true
 
 - name: kubeAdm init prepare admin mgr ..
   shell: mkdir -p $HOME/.kube ; cp -i /etc/kubernetes/admin.conf $HOME/.kube/config ; chown $(id -u):$(id -g) $HOME/.kube/config
@@ -98,3 +149,10 @@
   shell: export kubever=$(kubectl version | base64 | tr -d '\n') ; kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
   become: yes
   become_user: root 
+
+- name: Install Dashbaord 
+  shell: kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta8/aio/deploy/recommended.yaml ;echo "Access this link -> http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login" >> /tmp/kubeinit.log
+
+- name: Adding admin User 
+  shell: kubectl apply -f /etc/ansible/roles/master/files/admin_token.yml ; kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin | awk '{print $1}') >> /tmp/kubeinit.log
+

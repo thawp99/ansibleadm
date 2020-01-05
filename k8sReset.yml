@@ -1,0 +1,12 @@
+---
+- hosts: master
+  roles:
+    - resetkube
+
+- hosts: node0
+  roles:
+    - resetkube
+
+- hosts: node1
+  roles:
+    - resetkube
